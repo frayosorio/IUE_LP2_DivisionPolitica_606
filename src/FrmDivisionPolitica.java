@@ -21,7 +21,9 @@ import javax.swing.tree.DefaultTreeModel;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import entidades.Ciudad;
 import entidades.Pais;
+import entidades.Region;
 
 public class FrmDivisionPolitica extends JFrame {
 
@@ -86,11 +88,23 @@ public class FrmDivisionPolitica extends JFrame {
             paises = objectMapper.readValue(new File(nombreArchivo),
                     objectMapper.getTypeFactory().constructCollectionType(List.class,
                             Pais.class));
+
             if (paises != null) {
                 for (Pais pais : paises) {
 
-                    DefaultMutableTreeNode nodoPais=new DefaultMutableTreeNode(pais.getNombre());
-
+                    DefaultMutableTreeNode nodoPais = new DefaultMutableTreeNode(pais.getNombre());
+                    if (pais.getRegiones() != null) {
+                        for (Region region : pais.getRegiones()) {
+                            DefaultMutableTreeNode nodoRegion = new DefaultMutableTreeNode(region.getNombre());
+                            if (region.getCiudades() != null) {
+                                for (Ciudad ciudad : region.getCiudades()) {
+                                    DefaultMutableTreeNode nodoCiudad = new DefaultMutableTreeNode(ciudad.getNombre());
+                                    nodoRegion.add(nodoCiudad);
+                                }
+                            }
+                            nodoPais.add(nodoRegion);
+                        }
+                    }
                     nodoRaiz.add(nodoPais);
                 }
             }
@@ -99,12 +113,51 @@ public class FrmDivisionPolitica extends JFrame {
         }
     }
 
-    private void mostrarMapa() {
-
+    private String getNombrePais() {
+        DefaultMutableTreeNode nodo = (DefaultMutableTreeNode) arbol.getLastSelectedPathComponent();
+        while (nodo != null) {
+            if (nodo.getParent() == nodoRaiz) {
+                return nodo.toString().replace("á", "a")
+                        .replace("é", "e")
+                        .replace("í", "i")
+                        .replace("ó", "o")
+                        .replace("ú", "u");
+            }
+            nodo = (DefaultMutableTreeNode) nodo.getParent();
+        }
+        return "";
     }
 
-    private void reproducirHimno() {
+    private void mostrarMapa() {
+        String nombrePais = getNombrePais();
+        if (!nombrePais.equals("")) {
+            String rutaMapa = "src/mapas/" + nombrePais + ".jpg";
+            File archivoMapa = new File(rutaMapa);
+            if (archivoMapa.exists()) {
+                lblMapa.setIcon(new ImageIcon(rutaMapa));
+            } else {
+                lblMapa.setIcon(null);
+            }
+        }
+    }
 
+    private boolean reproduciendo = false;
+
+    private void reproducirHimno() {
+        if (reproduciendo) {
+            reproduciendo = false;
+            ReproductorAudio.detener();
+        } else {
+            String nombrePais = getNombrePais();
+            if (!nombrePais.equals("")) {
+                String rutaHimno = "src/himnos/" + nombrePais + ".mp3";
+                File archivoHimno = new File(rutaHimno);
+                if (archivoHimno.exists()) {
+                    ReproductorAudio.reproducir(rutaHimno);
+                    reproduciendo = true;
+                }
+            }
+        }
     }
 
 }
